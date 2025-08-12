@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import Image from 'next/image';
 import { 
   LayoutDashboard, 
   FolderOpen, 
@@ -71,8 +72,8 @@ export function ClientSidebar() {
 
   return (
     <div className="flex h-full w-64 flex-col bg-card border-r">
-      <div className="flex h-16 items-center px-6 border-b">
-        <h1 className="text-xl font-bold">NOURX Client</h1>
+      <div className="flex h-16 items-center justify-center px-6 border-b">
+        <Image src="/CNourx.png" alt="Logo" width={110} height={24} priority />
       </div>
       
       <nav className="flex-1 space-y-1 p-4">

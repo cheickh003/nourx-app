@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import Image from 'next/image';
 import { 
   FolderOpen, 
   Users, 
@@ -83,9 +84,8 @@ export function AdminSidebar() {
 
   return (
     <div className="flex h-full w-64 flex-col bg-card border-r">
-      <div className="flex h-16 items-center px-6 border-b">
-        <Shield className="h-6 w-6 mr-2 text-primary" />
-        <h1 className="text-xl font-bold">NOURX Admin</h1>
+      <div className="flex h-16 items-center justify-center px-6 border-b">
+        <Image src="/CNourx.png" alt="Logo" width={110} height={24} priority />
       </div>
       
       <nav className="flex-1 space-y-1 p-4">
