@@ -46,13 +46,7 @@ export default async function Home() {
               </Link>
             </Button>
             
-            <div className="text-sm text-muted-foreground">
-              <p>Comptes de démonstration :</p>
-              <div className="mt-2 space-y-1">
-                <p><strong>Admin :</strong> admin@nourx.dev / admin123</p>
-                <p><strong>Client :</strong> client@test.com / client123</p>
-              </div>
-            </div>
+            {/* Section de démonstration retirée */}
           </div>
         </CardContent>
       </Card>
