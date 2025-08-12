@@ -148,6 +148,44 @@ export function useDocumentsRealtime(
   });
 }
 
+// Hook spécialisé pour les tickets d'un client/projet
+export function useTicketsRealtime(
+  projectOrClientFilter: { projectId?: string; clientId?: string },
+  onTicketChange?: () => void,
+  enabled = true
+) {
+  const filter = projectOrClientFilter.projectId
+    ? `project_id=eq.${projectOrClientFilter.projectId}`
+    : projectOrClientFilter.clientId
+    ? `client_id=eq.${projectOrClientFilter.clientId}`
+    : undefined
+
+  return useRealtime({
+    table: 'tickets',
+    filter,
+    onInsert: onTicketChange,
+    onUpdate: onTicketChange,
+    onDelete: onTicketChange,
+    enabled,
+  })
+}
+
+// Hook spécialisé pour les messages d'un ticket
+export function useTicketMessagesRealtime(
+  ticketId: string,
+  onMessageChange?: () => void,
+  enabled = true
+) {
+  return useRealtime({
+    table: 'ticket_messages',
+    filter: `ticket_id=eq.${ticketId}`,
+    onInsert: onMessageChange,
+    onUpdate: onMessageChange,
+    onDelete: onMessageChange,
+    enabled,
+  })
+}
+
 // Hook pour les canaux broadcast (messages temps réel)
 interface UseBroadcastOptions {
   channel: string;

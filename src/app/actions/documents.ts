@@ -31,6 +31,30 @@ export async function getProjectDocuments(projectId: string): Promise<{ success:
   }
 }
 
+export async function listMyDocuments(): Promise<{ success: boolean; data?: Document[]; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    const { data: user, error: authError } = await supabase.auth.getUser();
+    if (authError || !user.user) {
+      return { success: false, error: 'Non authentifié' };
+    }
+
+    const { data, error } = await supabase
+      .from('documents')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      return { success: false, error: 'Erreur lors de la récupération des documents' };
+    }
+
+    return { success: true, data: data || [] };
+  } catch (e) {
+    return { success: false, error: 'Erreur lors de la récupération des documents' };
+  }
+}
+
 export async function createDocument(data: CreateDocumentData): Promise<{ success: boolean; data?: Document; error?: string }> {
   try {
     const supabase = await createClient();
@@ -183,7 +207,8 @@ export async function deleteDocument(id: string): Promise<{ success: boolean; er
 export async function getDocumentDownloadUrl(documentId: string): Promise<{ success: boolean; data?: { download_url: string; document: Partial<Document> }; error?: string }> {
   try {
     // Cette fonction utilise l'API route pour obtenir l'URL signée
-    const response = await fetch(`/api/documents/${documentId}/download`, {
+    const baseUrl = process.env.APP_URL || 'http://localhost:3000'
+    const response = await fetch(`${baseUrl}/api/documents/${documentId}/download`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

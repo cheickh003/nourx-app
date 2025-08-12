@@ -27,7 +27,9 @@ import {
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { getDocumentDownloadUrl, deleteDocument } from '@/app/actions/documents';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface DocumentListProps {
   documents: Document[];
@@ -55,6 +57,8 @@ export function DocumentList({
 }: DocumentListProps) {
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'all' | 'public' | 'private'>('all');
+  const [query, setQuery] = useState<string>('');
 
   const formatFileSize = (bytes: number | null): string => {
     if (!bytes) return 'Taille inconnue';
@@ -76,15 +80,13 @@ export function DocumentList({
     setIsDownloading(document.id);
     
     try {
-      const result = await getDocumentDownloadUrl(document.id);
-      
-      if (!result.success || !result.data) {
-        toast.error(result.error || 'Erreur génération lien de téléchargement');
+      const res = await fetch(`/api/documents/${document.id}/download`, { method: 'GET' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.data?.download_url) {
+        toast.error(json?.error || 'Erreur génération lien de téléchargement');
         return;
       }
-
-      // Ouvrir le lien dans un nouvel onglet pour télécharger
-      window.open(result.data.download_url, '_blank');
+      window.open(json.data.download_url, '_blank');
       toast.success('Téléchargement commencé');
       
     } catch (error) {
@@ -104,18 +106,14 @@ export function DocumentList({
     setIsDeleting(document.id);
 
     try {
-      const result = await deleteDocument(document.id);
-      
-      if (!result.success) {
-        toast.error(result.error || 'Erreur suppression document');
+      const res = await fetch(`/api/documents/${document.id}`, { method: 'DELETE' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(json?.error || 'Erreur suppression document');
         return;
       }
-
       toast.success('Document supprimé avec succès');
-      
-      if (onDocumentUpdate) {
-        onDocumentUpdate();
-      }
+      onDocumentUpdate?.();
       
     } catch (error) {
       console.error('Erreur suppression:', error);
@@ -125,7 +123,56 @@ export function DocumentList({
     }
   };
 
-  if (documents.length === 0) {
+  const renameDocument = async (document: Document) => {
+    const newLabel = window.prompt('Nouveau nom du document', document.label || '') || '';
+    const trimmed = newLabel.trim();
+    if (!trimmed || trimmed === document.label) return;
+    try {
+      const res = await fetch(`/api/documents/${document.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: trimmed })
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(json?.error || 'Erreur lors du renommage');
+        return;
+      }
+      toast.success('Document renommé');
+      onDocumentUpdate?.();
+    } catch (e) {
+      console.error(e);
+      toast.error('Erreur lors du renommage');
+    }
+  };
+
+  const setVisibility = async (document: Document, visibility: 'private' | 'public') => {
+    try {
+      const res = await fetch(`/api/documents/${document.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visibility })
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(json?.error || 'Erreur mise à jour visibilité');
+        return;
+      }
+      toast.success(`Visibilité: ${visibility === 'private' ? 'Privé' : 'Public'}`);
+      onDocumentUpdate?.();
+    } catch (e) {
+      console.error(e);
+      toast.error('Erreur mise à jour visibilité');
+    }
+  };
+
+  const filtered = documents.filter(d => {
+    const matchesVisibility = filter === 'all' || d.visibility === filter;
+    const matchesQuery = query.trim().length === 0 || (d.label ?? '').toLowerCase().includes(query.toLowerCase());
+    return matchesVisibility && matchesQuery;
+  });
+
+  if (filtered.length === 0) {
     return (
       <div className={cn('text-center py-12', className)}>
         <Archive className="mx-auto h-12 w-12 text-gray-400 mb-4" />
@@ -141,7 +188,25 @@ export function DocumentList({
 
   return (
     <div className={cn('space-y-3', className)}>
-      {documents.map(document => {
+      <div className="flex items-end gap-3 pb-2">
+        <div className="flex-1">
+          <Label htmlFor="doc-query" className="text-xs">Rechercher</Label>
+          <Input id="doc-query" placeholder="Nom du document" value={query} onChange={(e) => setQuery(e.target.value)} className="h-9" />
+        </div>
+        <div className="w-40">
+          <Label className="text-xs">Visibilité</Label>
+          <Select value={filter} onValueChange={(v) => setFilter(v as 'all' | 'public' | 'private')}>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes</SelectItem>
+              <SelectItem value="public">Publiques</SelectItem>
+              <SelectItem value="private">Privées</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {filtered.map(document => {
         const FileIcon = getFileIcon(document.mime_type);
         const isProcessing = isDownloading === document.id || isDeleting === document.id;
 
@@ -214,6 +279,21 @@ export function DocumentList({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => renameDocument(document)} disabled={isProcessing}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Renommer
+                        </DropdownMenuItem>
+                        {document.visibility === 'public' ? (
+                          <DropdownMenuItem onClick={() => setVisibility(document, 'private')} disabled={isProcessing}>
+                            <Badge className="mr-2">Privé</Badge>
+                            Rendre privé
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={() => setVisibility(document, 'public')} disabled={isProcessing}>
+                            <Badge className="mr-2">Public</Badge>
+                            Rendre public
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           onClick={() => handleDownload(document)}
                           disabled={isProcessing}

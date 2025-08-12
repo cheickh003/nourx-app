@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
-export async function GET(
-  _request: NextRequest,
-  context: { params: Promise<{ documentId: string }> }
-) {
+export async function GET(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await createClient();
 
@@ -17,12 +14,12 @@ export async function GET(
       );
     }
 
-    const { documentId } = await context.params;
+      const { id: documentId } = await context.params;
 
     // Récupérer les informations du document
     const { data: document, error: documentError } = await supabase
       .from('documents')
-      .select(`id, storage_bucket, storage_path, projects(id, client_id)`)
+      .select(`id, storage_bucket, storage_path, projects(id, client_id)`) // relation projects doit exister dans schema
       .eq('id', documentId)
       .single();
 

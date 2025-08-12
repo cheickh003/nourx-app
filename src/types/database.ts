@@ -7,6 +7,8 @@ export interface Profile {
   role: UserRole;
   full_name: string | null;
   phone: string | null;
+  avatar_url?: string | null;
+  preferences?: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -274,6 +276,61 @@ export interface CreateQuoteData {
   total_ttc?: number
   status?: QuoteStatus
   expires_at?: string
+}
+
+// ------------------------------
+// Phase 4 — Tickets
+// ------------------------------
+
+export type TicketStatus = 'open' | 'in_progress' | 'waiting_customer' | 'resolved' | 'closed'
+
+export interface TicketCategory {
+  id: string
+  label: string
+}
+
+export interface TicketPriority {
+  id: string
+  code: 'low' | 'normal' | 'high' | 'urgent'
+  response_sla_minutes: number
+  resolve_sla_minutes: number
+}
+
+export interface Ticket {
+  id: string
+  client_id: string
+  project_id: string | null
+  category_id: string | null
+  priority_id: string | null
+  subject: string
+  status: TicketStatus
+  first_response_due_at: string | null
+  resolve_due_at: string | null
+  last_customer_activity: string | null
+  last_admin_activity: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export interface TicketMessage {
+  id: string
+  ticket_id: string
+  author_id: string
+  body: string
+  visibility: 'public' | 'internal'
+  created_at: string
+}
+
+export interface TicketAttachment {
+  id: string
+  ticket_id: string
+  label: string | null
+  storage_bucket: string
+  storage_path: string
+  mime_type: string | null
+  size_bytes: number | null
+  created_by: string | null
+  created_at: string
 }
 
 export interface CreateInvoiceData {

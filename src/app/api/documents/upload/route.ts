@@ -27,44 +27,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Récupérer le rôle
+    // Récupérer le rôle (si inaccessible, on considère non-admin)
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('user_id', user.id)
       .single();
 
-    // Vérifier l'accès au projet (admin = bypass, sinon membre requis)
-    if (profile?.role === 'admin') {
-      const { data: exists, error: projErr } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('id', projectId)
-        .single();
-      if (projErr || !exists) {
-        return NextResponse.json(
-          { error: 'Projet introuvable' },
-          { status: 404 }
-        );
-      }
-    } else {
-      const { data: project, error: projectError } = await supabase
-        .from('projects')
-        .select(`
-          id,
-          client_id,
-          client_members!inner(user_id)
-        `)
-        .eq('id', projectId)
-        .eq('client_members.user_id', user.id)
-        .single();
+    // Vérifier l'accès au projet
+    // - Admin: accès à tout projet lisible pour lui
+    // - Client: on s'appuie sur les RLS de la table projects
+    //   (si le projet n'appartient pas à son client, la requête ne retournera rien)
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('id, client_id')
+      .eq('id', projectId)
+      .single();
 
-      if (projectError || !project) {
-        return NextResponse.json(
-          { error: 'Projet non trouvé ou accès refusé' },
-          { status: 403 }
-        );
-      }
+    if (projectError || !project) {
+      return NextResponse.json(
+        { error: 'Projet non trouvé ou accès refusé' },
+        { status: 403 }
+      );
     }
 
     // Générer un nom de fichier unique

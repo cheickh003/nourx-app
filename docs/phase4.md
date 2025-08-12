@@ -1,5 +1,11 @@
 # Phase 4 — Réclamations (tickets) & Notifications
 
+Livrables: tables `tickets`, `ticket_messages`, `ticket_attachments`, `email_events` avec RLS, policies Storage pour pièces jointes, Realtime sur `tickets` et `ticket_messages`, pages liste client `/(client)/reclamations`, page admin `/admin/reclamations`, Server Actions `src/app/actions/tickets.ts`, et route upload `POST /api/tickets/upload`.
+
+Voir aussi la migration: `supabase/migrations/20250812130000_phase4_tickets_and_notifications.sql`.
+
+# Phase 4 — Réclamations (tickets) & Notifications
+
 **But** : livrer un module de** ****réclamations** complet (soumission, suivi, commentaires, pièces jointes, SLA/relances) et une** ****chaîne de notifications e-mail** fiable (création, réponse, changement de statut, rappels SLA).
 **Stack** : Next.js App Router (**Route Handlers** +** ** **Server Actions** ), Supabase ( **Postgres + RLS + Realtime + Storage + Cron/pg_cron** ), service d’e-mail (Resend** ***ou* SMTP/Nodemailer). ([Next.js](https://nextjs.org/docs/app/api-reference/file-conventions/route?utm_source=chatgpt.com "File-system conventions: route.js"),** **[Supabase](https://supabase.com/docs/guides/realtime?utm_source=chatgpt.com "Realtime | Supabase Docs"),** **[resend.com](https://resend.com/docs/send-with-nextjs?utm_source=chatgpt.com "Send emails with Next.js"))
 

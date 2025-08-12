@@ -45,6 +45,23 @@ export function ClientCreateDialog() {
             <Label htmlFor="contact_email">Email de contact</Label>
             <Input id="contact_email" name="contact_email" type="email" />
           </div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <input id="create_user_contact" name="create_user_contact" type="checkbox" className="h-4 w-4" />
+              <Label htmlFor="create_user_contact">Créer un compte utilisateur pour ce contact</Label>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div>
+                <Label htmlFor="user_email">Email utilisateur (optionnel)</Label>
+                <Input id="user_email" name="user_email" type="email" placeholder="Par défaut: email de contact" />
+              </div>
+              <div>
+                <Label htmlFor="user_full_name">Nom complet (optionnel)</Label>
+                <Input id="user_full_name" name="user_full_name" placeholder="Par défaut: nom du client" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">Un mot de passe temporaire sera envoyé par e-mail si coché.</p>
+          </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
             <Button type="submit" disabled={isLoading}>{isLoading ? 'Création...' : 'Créer'}</Button>
