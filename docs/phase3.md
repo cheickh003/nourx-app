@@ -9,7 +9,7 @@
 1. **Devis → Facture**
 
 * Admin crée un** ****devis** (PDF généré, statut** **`draft` →** **`sent`).
-* Client consulte,** ****accepte** (passe** **`accepted`) →** ****génère facture** (`issued`).
+* Client consulte,** ****accepte** (passe** **`accepted`) →** ****génère facture** (`issued`).npm
 * (Option) Refus/commentaires de devis.
 
 2. **Paiement de facture**

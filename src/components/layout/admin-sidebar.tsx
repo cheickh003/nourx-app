@@ -13,11 +13,18 @@ import {
   MessageSquare, 
   Settings,
   LogOut,
-  Shield
+  Shield,
+  Calendar,
+  File
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 const navigation = [
+  {
+    name: 'Tableau de bord',
+    href: '/admin',
+    icon: Shield
+  },
   {
     name: 'Projets',
     href: '/admin/projets',
@@ -37,6 +44,16 @@ const navigation = [
     name: 'Tâches',
     href: '/admin/taches',
     icon: CheckSquare
+  },
+  {
+    name: 'Feuille de route',
+    href: '/admin/feuille-de-route',
+    icon: Calendar
+  },
+  {
+    name: 'Documents',
+    href: '/admin/documents',
+    icon: File
   },
   {
     name: 'Réclamations',

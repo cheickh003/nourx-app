@@ -27,12 +27,15 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session if expired - required for Server Components
-  await supabase.auth.getUser()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user = null
+  try {
+    // Refresh session if expired - required for Server Components
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch (error) {
+    console.error('Middleware auth error:', error)
+    // Continue without user if auth fails
+  }
 
   // Protection des routes authentifiées
   if (!user && (

@@ -25,7 +25,7 @@ export default async function CallbackPage({
           .single()
         
         if (profile?.role === 'admin') {
-          redirect('/admin/projets')
+          redirect('/admin')
         } else {
           redirect('/dashboard')
         }

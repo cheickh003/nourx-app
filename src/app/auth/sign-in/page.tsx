@@ -33,8 +33,24 @@ export default function SignInPage() {
         return;
       }
 
-      // Redirection gérée par middleware
-      window.location.href = '/dashboard';
+      // Récupérer le profil utilisateur pour déterminer la redirection
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (profile?.role === 'admin') {
+          window.location.href = '/admin';
+        } else {
+          window.location.href = '/dashboard';
+        }
+      } else {
+        window.location.href = '/dashboard';
+      }
     } catch {
       setError('Une erreur est survenue');
     } finally {
