@@ -10,6 +10,8 @@ import { ArrowLeft, FileText, Calendar, User, Building } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
+import { acceptQuote, sendQuote } from '@/app/actions/invoices';
+import { redirect } from 'next/navigation';
 import { Quote } from '@/types/database';
 
 interface QuoteDetailPageProps {
@@ -24,7 +26,7 @@ async function getQuote(id: string): Promise<Quote | null> {
     .select(`
       *,
       clients (name),
-      projects (title)
+      projects (name)
     `)
     .eq('id', id)
     .single();
@@ -95,7 +97,7 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
               <label className="text-sm font-medium text-muted-foreground">Projet</label>
               <div className="flex items-center gap-2 mt-1">
                 <Building className="h-4 w-4 text-muted-foreground" />
-                <span>{(quote as Quote & { projects?: { title: string } }).projects?.title || 'N/A'}</span>
+                <span>{(quote as Quote & { projects?: { name: string } }).projects?.name || 'N/A'}</span>
               </div>
             </div>
 
@@ -146,21 +148,40 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
             <CardTitle>Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button variant="outline" className="w-full">
-              <FileText className="h-4 w-4 mr-2" />
-              Générer PDF
+            <Button asChild variant="outline" className="w-full">
+              <Link href={`/api/quotes/${quote.id}/pdf`} target="_blank" rel="noopener noreferrer">
+                <FileText className="h-4 w-4 mr-2" />
+                Générer PDF
+              </Link>
             </Button>
             
             {quote.status === 'draft' && (
-              <Button variant="outline" className="w-full">
-                Envoyer au client
-              </Button>
+              <form
+                action={async () => {
+                  'use server'
+                  await sendQuote(quote.id)
+                }}
+              >
+                <Button type="submit" variant="outline" className="w-full">
+                  Envoyer au client
+                </Button>
+              </form>
             )}
             
             {quote.status === 'sent' && (
-              <Button className="w-full">
-                Accepter le devis
-              </Button>
+              <form
+                action={async () => {
+                  'use server'
+                  const res = await acceptQuote(quote.id)
+                  if (res.success && res.invoiceId) {
+                    redirect(`/admin/factures-devis/factures/${res.invoiceId}`)
+                  }
+                }}
+              >
+                <Button type="submit" className="w-full">
+                  Accepter le devis
+                </Button>
+              </form>
             )}
           </CardContent>
         </Card>

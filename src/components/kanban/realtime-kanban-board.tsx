@@ -5,7 +5,6 @@ import { TaskWithDetails } from '@/types/database';
 import { KanbanBoard } from './kanban-board';
 import { useTasksRealtime } from '@/hooks/useRealtime';
 import { getTasks } from '@/app/actions/tasks';
-import { toast } from 'sonner';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 

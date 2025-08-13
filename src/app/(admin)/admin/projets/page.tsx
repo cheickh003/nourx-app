@@ -189,7 +189,7 @@ export default async function AdminProjetsPage() {
                             Voir
                           </Link>
                         </Button>
-                        <ProjectRowActions project={{ id: project.id, name: project.name, description: project.description, status: project.status, start_date: project.start_date, end_date: project.end_date }} />
+                        <ProjectRowActions project={{ id: project.id, name: project.name, description: project.description ?? null, status: String(project.status || ''), start_date: project.start_date ?? null, end_date: project.end_date ?? null }} />
                       </div>
                     </TableCell>
                   </TableRow>

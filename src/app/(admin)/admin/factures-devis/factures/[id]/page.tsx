@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
 import { Invoice } from '@/types/database';
+import { requestPayment } from '@/app/actions/invoices';
 
 interface InvoiceDetailPageProps {
   params: Promise<{ id: string }>;
@@ -23,7 +24,7 @@ async function getInvoice(id: string): Promise<Invoice | null> {
     .select(`
       *,
       clients (name),
-      projects (title)
+      projects (name)
     `)
     .eq('id', id)
     .single();
@@ -94,7 +95,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
               <label className="text-sm font-medium text-muted-foreground">Projet</label>
               <div className="flex items-center gap-2 mt-1">
                 <Building className="h-4 w-4 text-muted-foreground" />
-                <span>{(invoice as Invoice & { projects?: { title: string } }).projects?.title || 'N/A'}</span>
+                <span>{(invoice as Invoice & { projects?: { name: string } }).projects?.name || 'N/A'}</span>
               </div>
             </div>
 
@@ -152,9 +153,11 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
             <CardTitle>Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button variant="outline" className="w-full">
-              <FileText className="h-4 w-4 mr-2" />
-              Générer PDF
+            <Button asChild variant="outline" className="w-full">
+              <Link href={`/api/invoices/${invoice.id}/pdf`} target="_blank" rel="noopener noreferrer">
+                <FileText className="h-4 w-4 mr-2" />
+                Générer PDF
+              </Link>
             </Button>
             
             {invoice.status === 'draft' && (
@@ -164,10 +167,18 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
             )}
             
             {(invoice.status === 'issued' || invoice.status === 'sent') && (
-              <Button className="w-full">
-                <CreditCard className="h-4 w-4 mr-2" />
-                Initier paiement
-              </Button>
+              <form
+                action={async () => {
+                  'use server'
+                  const res = await requestPayment(invoice.id)
+                  if (res.url) redirect(res.url)
+                }}
+              >
+                <Button className="w-full" type="submit">
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Initier paiement
+                </Button>
+              </form>
             )}
           </CardContent>
         </Card>

@@ -2,11 +2,11 @@ import { createClient } from '@/lib/supabase/server';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClientCreateDialog } from '@/components/admin/client-create-dialog';
 import { ClientEditActions } from '@/components/admin/client-edit-actions';
-import { Badge } from '@/components/ui/badge';
+// import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CalendarDays, Search, User, Target, Plus } from 'lucide-react';
+import { CalendarDays, Search, User, Target /*, Plus*/ } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -148,7 +148,7 @@ export default async function AdminClientsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {clients.map((client) => (
+                {clients.map((client: { id: string; name: string; description?: string | null; contact_email?: string | null; projects?: unknown[]; client_members?: unknown[]; created_at: string; phone?: string | null; address?: string | null; website?: string | null; legal?: string | null }) => (
                   <TableRow key={client.id}>
                     <TableCell>
                       <div>
@@ -183,7 +183,7 @@ export default async function AdminClientsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <ClientEditActions client={{ id: client.id, name: client.name, contact_email: client.contact_email }} />
+                      <ClientEditActions client={{ id: client.id, name: client.name, contact_email: client.contact_email, phone: client.phone ?? null, address: client.address ?? null, website: client.website ?? null, legal: client.legal ?? null }} />
                     </TableCell>
                   </TableRow>
                 ))}

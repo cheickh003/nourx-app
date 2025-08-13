@@ -9,7 +9,7 @@ import { deleteClientAction, updateClientAction } from '@/app/actions/clients';
 import { useRouter } from 'next/navigation';
 
 interface Props {
-  client: { id: string; name: string; contact_email?: string | null };
+  client: { id: string; name: string; contact_email?: string | null; phone?: string | null; address?: string | null; website?: string | null; legal?: string | null };
 }
 
 export function ClientEditActions({ client }: Props) {
@@ -51,6 +51,24 @@ export function ClientEditActions({ client }: Props) {
             <div className="space-y-2">
               <Label htmlFor="contact_email">Email de contact</Label>
               <Input id="contact_email" name="contact_email" type="email" defaultValue={client.contact_email || ''} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Téléphone</Label>
+                <Input id="phone" name="phone" defaultValue={client.phone || ''} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="website">Site web</Label>
+                <Input id="website" name="website" defaultValue={client.website || ''} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address">Adresse</Label>
+              <Input id="address" name="address" defaultValue={client.address || ''} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="legal">Mentions légales</Label>
+              <Input id="legal" name="legal" defaultValue={client.legal || ''} />
             </div>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Annuler</Button>

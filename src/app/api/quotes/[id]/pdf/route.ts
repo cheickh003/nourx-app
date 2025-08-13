@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { type Quote, type QuoteItem } from '@/types/database';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { readFile } from 'node:fs/promises';
 
 export async function GET(
   _request: NextRequest,
@@ -10,8 +12,8 @@ export async function GET(
     const { id } = await context.params;
     const supabase = await createClient();
 
-    const { data: user, error: authError } = await supabase.auth.getUser();
-    if (authError || !user.user) {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
     }
 
@@ -20,7 +22,7 @@ export async function GET(
       .from('quotes')
       .select(`
         *,
-        clients (name, contact_email),
+        clients (name, contact_email, phone),
         projects (name),
         quote_items (*)
       `)
@@ -31,75 +33,122 @@ export async function GET(
       return NextResponse.json({ error: 'Devis non trouvé' }, { status: 404 });
     }
 
-    // TODO: Implémenter génération PDF avec une lib comme puppeteer ou jsPDF
-    // Pour l'instant, retourner un HTML simple
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Devis ${quote.number}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { text-align: center; margin-bottom: 30px; }
-            .info { margin-bottom: 20px; }
-            .items { width: 100%; border-collapse: collapse; }
-            .items th, .items td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            .items th { background-color: #f2f2f2; }
-            .total { text-align: right; margin-top: 20px; font-weight: bold; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>DEVIS</h1>
-            <h2>${quote.number}</h2>
-          </div>
-          
-          <div class="info">
-            <p><strong>Client:</strong> ${(quote as Quote & { clients?: { name: string }; projects?: { name: string } }).clients?.name || 'N/A'}</p>
-            <p><strong>Projet:</strong> ${(quote as Quote & { clients?: { name: string }; projects?: { name: string } }).projects?.name || 'N/A'}</p>
-            <p><strong>Date:</strong> ${new Date(quote.created_at).toLocaleDateString('fr-FR')}</p>
-            ${quote.expires_at ? `<p><strong>Expire le:</strong> ${new Date(quote.expires_at).toLocaleDateString('fr-FR')}</p>` : ''}
-          </div>
+    // Génération PDF (pdf-lib)
+    const pdfDoc = await PDFDocument.create();
+    let page = pdfDoc.addPage([595.28, 841.89]); // A4
+    const { width, height } = page.getSize();
+    const margin = 48;
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-          ${(quote as Quote & { quote_items?: QuoteItem[] }).quote_items?.length ? `
-            <table class="items">
-              <thead>
-                <tr>
-                  <th>Désignation</th>
-                  <th>Quantité</th>
-                  <th>Prix unitaire</th>
-                  <th>TVA</th>
-                  <th>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${(quote as Quote & { quote_items?: QuoteItem[] }).quote_items?.map((item: QuoteItem) => `
-                  <tr>
-                    <td>${item.label}</td>
-                    <td>${item.qty}</td>
-                    <td>${item.unit_price} ${quote.currency}</td>
-                    <td>${item.vat_rate}%</td>
-                    <td>${(item.qty * item.unit_price).toFixed(2)} ${quote.currency}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          ` : '<p>Aucun élément dans ce devis.</p>'}
+    let y = height - margin;
+    const drawText = (text: string, x: number, size = 12, boldFace = false, color = rgb(0, 0, 0)) => {
+      page.drawText(text, { x, y, size, font: boldFace ? bold : font, color });
+      y -= size + 6;
+    };
 
-          <div class="total">
-            <p>Total HT: ${quote.total_ht} ${quote.currency}</p>
-            <p>Total TVA: ${quote.total_tva} ${quote.currency}</p>
-            <p><strong>Total TTC: ${quote.total_ttc} ${quote.currency}</strong></p>
-          </div>
-        </body>
-      </html>
-    `;
+    // Charger coordonnées organisation
+    const { data: org } = await supabase.from('org_settings').select('*').order('id', { ascending: true }).limit(1).maybeSingle();
 
-    return new NextResponse(html, {
+    // Header band + logo
+    page.drawRectangle({ x: 0, y: height - 90, width, height: 90, color: rgb(0.95,0.96,0.98) });
+    try {
+      const logoBytes = await readFile(process.cwd() + '/public/CNourx.png');
+      const logo = await pdfDoc.embedPng(logoBytes);
+      const logoW = 64; const logoH = (logoW / logo.width) * logo.height;
+      page.drawImage(logo, { x: margin, y: height - 75, width: logoW, height: logoH });
+    } catch {}
+    page.drawText(String(org?.name || 'NOURX'), { x: margin + 80, y: height - 58, size: 16, font: bold, color: rgb(0.1,0.12,0.18) });
+    // Coordonnées société (header droit)
+    const headerInfoX = width - margin - 240;
+    const headerInfoY = height - 60;
+    const headerLines: string[] = [
+      org?.address || '',
+      [org?.phone, org?.email].filter(Boolean).join(' · '),
+      org?.website || '',
+    ].filter(Boolean);
+    let hoff = 0;
+    for (const l of headerLines) {
+      page.drawText(l, { x: headerInfoX, y: headerInfoY - hoff, size: 9, font, color: rgb(0.35,0.37,0.42) });
+      hoff += 12;
+    }
+
+    drawText('DEVIS', margin, 22, true);
+    drawText(`# ${quote.number}`, width - margin - (bold.widthOfTextAtSize(`# ${quote.number}`, 12)), 12, true);
+
+    y -= 6;
+    const clientName = (quote as Quote & { clients?: { name: string } }).clients?.name || 'N/A';
+    const clientEmail = (quote as Quote & { clients?: { contact_email?: string|null } }).clients?.contact_email || '';
+    const clientPhone = (quote as Quote & { clients?: { phone?: string|null } }).clients?.phone || '';
+    const projectName = (quote as Quote & { projects?: { name: string } }).projects?.name || 'N/A';
+    drawText(`Client: ${clientName}`, margin, 12);
+    if (clientPhone || clientEmail) drawText([clientPhone, clientEmail].filter(Boolean).join(' · '), margin, 11);
+    drawText(`Projet: ${projectName}`, margin, 12);
+    drawText(`Date: ${new Date(quote.created_at).toLocaleDateString('fr-FR')}`, margin, 12);
+    if (quote.expires_at) drawText(`Expire le: ${new Date(quote.expires_at).toLocaleDateString('fr-FR')}`, margin, 12);
+
+    y -= 8;
+    drawText('Désignation', margin, 12, true);
+    page.drawText('Qté', { x: width - margin - 180, y: y + 0, size: 12, font: bold });
+    page.drawText('PU', { x: width - margin - 120, y: y + 0, size: 12, font: bold });
+    page.drawText('TVA', { x: width - margin - 70, y: y + 0, size: 12, font: bold });
+    page.drawText('Total', { x: width - margin - 20 - 40, y: y + 0, size: 12, font: bold });
+    y -= 16;
+
+    const items = (quote as Quote & { quote_items?: QuoteItem[] }).quote_items || [];
+    if (items.length === 0) {
+      drawText('Aucun élément.', margin, 12);
+    } else {
+      for (const item of items) {
+        const line = String(item.label);
+        page.drawText(line.length > 60 ? `${line.slice(0, 57)}...` : line, { x: margin, y, size: 11, font });
+        page.drawText(String(item.qty), { x: width - margin - 180, y, size: 11, font });
+        page.drawText(`${Number(item.unit_price).toFixed(0)} ${quote.currency}`, { x: width - margin - 120, y, size: 11, font });
+        page.drawText(`${item.vat_rate}%`, { x: width - margin - 70, y, size: 11, font });
+        const total = (Number(item.qty) * Number(item.unit_price)).toFixed(0);
+        page.drawText(`${total} ${quote.currency}`, { x: width - margin - 20 - 40, y, size: 11, font });
+        y -= 16;
+        if (y < margin + 120) {
+          page = pdfDoc.addPage([595.28, 841.89]);
+          y = 841.89 - margin - 120;
+        }
+      }
+    }
+
+    y -= 8;
+    drawText(`Total HT: ${Number(quote.total_ht).toFixed(2)} ${quote.currency}`, width - 260, 12, true);
+    drawText(`Total TVA: ${Number(quote.total_tva).toFixed(2)} ${quote.currency}`, width - 260, 12, true);
+    drawText(`Total TTC: ${Number(quote.total_ttc).toFixed(2)} ${quote.currency}`, width - 260, 14, true, rgb(0.1, 0.1, 0.1));
+
+    // Footer avec mentions légales
+    page.drawLine({ start: { x: margin, y: margin + 44 }, end: { x: width - margin, y: margin + 44 }, thickness: 0.5, color: rgb(0.88,0.9,0.92) });
+    const legal = String(org?.legal || '').trim();
+    if (legal) {
+      const words = legal.split(' ');
+      let line = '';
+      let fy = margin + 30;
+      const maxW = width - margin*2;
+      for (const w of words) {
+        const next = line ? `${line} ${w}` : w;
+        if (bold.widthOfTextAtSize(next, 8) > maxW && line) {
+          page.drawText(line, { x: margin, y: fy, size: 8, font, color: rgb(0.4,0.42,0.48) });
+          fy -= 10; line = w;
+        } else { line = next; }
+      }
+      if (line) page.drawText(line, { x: margin, y: margin + 30, size: 8, font, color: rgb(0.4,0.42,0.48) });
+    }
+    page.drawText('Merci pour votre intérêt.', { x: margin, y: margin + 16, size: 10, font, color: rgb(0.35,0.37,0.42) });
+
+    const pdfBytes = await pdfDoc.save();
+    const arrayBuffer: ArrayBuffer = (pdfBytes as Uint8Array).buffer.slice(
+      (pdfBytes as Uint8Array).byteOffset,
+      (pdfBytes as Uint8Array).byteOffset + (pdfBytes as Uint8Array).byteLength
+    ) as ArrayBuffer
+    return new NextResponse(arrayBuffer, {
       headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Content-Disposition': `inline; filename="devis-${quote.number}.html"`,
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `inline; filename="devis-${quote.number}.pdf"`,
+        'Cache-Control': 'no-store',
       },
     });
 

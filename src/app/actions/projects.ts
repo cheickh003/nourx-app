@@ -207,8 +207,19 @@ export async function deleteProject(projectId: string): Promise<{ success: boole
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function getAllProjects(): Promise<{ data: any[] | null; error: string | null }> {
+export interface ProjectListRow {
+  id: string
+  client_id: string
+  name: string
+  status?: string
+  description?: string | null
+  start_date?: string | null
+  end_date?: string | null
+  created_at: string
+  clients?: { id: string; name: string } | null
+}
+
+export async function getAllProjects(): Promise<{ data: ProjectListRow[] | null; error: string | null }> {
   try {
     const supabase = await createClient();
 
@@ -225,7 +236,7 @@ export async function getAllProjects(): Promise<{ data: any[] | null; error: str
 
     if (error) throw error;
 
-    return { data: projects, error: null };
+    return { data: projects as ProjectListRow[], error: null };
 
   } catch (error: unknown) {
     console.error('Error fetching all projects:', error);
@@ -233,8 +244,7 @@ export async function getAllProjects(): Promise<{ data: any[] | null; error: str
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function getUserProjects(): Promise<{ data: any[] | null; error: string | null }> {
+export async function getUserProjects(): Promise<{ data: ProjectListRow[] | null; error: string | null }> {
   try {
     const supabase = await createClient();
 
@@ -251,7 +261,7 @@ export async function getUserProjects(): Promise<{ data: any[] | null; error: st
 
     if (error) throw error;
 
-    return { data: projects, error: null };
+    return { data: projects as ProjectListRow[], error: null };
 
   } catch (error: unknown) {
     console.error('Error fetching user projects:', error);

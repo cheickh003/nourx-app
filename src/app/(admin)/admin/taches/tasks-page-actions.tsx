@@ -25,7 +25,7 @@ export function TasksPageActions({ task }: TasksPageActionsProps) {
         <Button 
           variant="ghost" 
           size="sm"
-          onClick={() => {/* TODO: Voir détails */}}
+          onClick={() => router.push(`/admin/taches/${task.id}`)}
         >
           Voir
         </Button>

@@ -24,7 +24,7 @@ export function MilestonePageActions({ milestone }: MilestonePageActionsProps) {
         <Button 
           variant="ghost" 
           size="sm"
-          onClick={() => {/* TODO: Voir détails */}}
+          onClick={() => router.push(`/admin/feuille-de-route/${milestone.id}`)}
         >
           Voir
         </Button>

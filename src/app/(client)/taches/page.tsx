@@ -42,7 +42,7 @@ async function TasksContent() {
     .eq('user_id', user.id)
     .single();
 
-  if (!clientMembership?.clients || !Array.isArray(clientMembership.clients)) {
+  if (!clientMembership?.clients) {
     return (
       <div className="flex flex-col gap-6">
         <div>
@@ -67,8 +67,8 @@ async function TasksContent() {
     );
   }
 
-  const clientData = clientMembership.clients[0];
-  if (!clientData?.projects || clientData.projects.length === 0) {
+  const clientData = clientMembership.clients as unknown as { id: string; name: string; projects?: { id: string; name: string }[] } | null
+  if (!clientData || !Array.isArray(clientData.projects) || clientData.projects.length === 0) {
     return (
       <div className="flex flex-col gap-6">
         <div>
@@ -105,7 +105,7 @@ async function TasksContent() {
         <div>
           <h1 className="text-3xl font-bold">Tâches</h1>
           <p className="text-muted-foreground">
-            Projet: {project.title} • {tasks.length} tâche(s)
+            Projet: {project.name} • {tasks.length} tâche(s)
           </p>
         </div>
         

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
+import { createJsonParser } from '@/lib/validation'
 
 export async function PATCH(
   request: NextRequest,
@@ -13,7 +15,15 @@ export async function PATCH(
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    const body = await request.json().catch(() => ({})) as { label?: string; visibility?: 'private' | 'public' }
+    const patchSchema = z.object({
+      label: z.string().min(1).max(200).optional(),
+      visibility: z.enum(['private', 'public']).optional(),
+    })
+    const parse = createJsonParser(patchSchema)
+    const body = await parse(request)
+    if (!body) {
+      return NextResponse.json({ error: 'Corps invalide' }, { status: 400 })
+    }
     const updates: Record<string, unknown> = {}
     if (typeof body.label === 'string') updates.label = body.label
     if (body.visibility === 'private' || body.visibility === 'public') updates.visibility = body.visibility

@@ -131,6 +131,41 @@ export async function updatePreferences(formData: FormData) {
   return { ok: true, message: "Préférences mises à jour" }
 }
 
+// ------- Organisation settings (admin)
+export async function getOrgSettings() {
+  const supabase = await createClient()
+  const { data } = await supabase.from('org_settings').select('*').order('id', { ascending: true }).limit(1).maybeSingle()
+  return data
+}
+
+export async function updateOrgSettings(formData: FormData) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { ok: false, message: 'Non authentifié' }
+
+  const payload = {
+    name: (formData.get('org_name') as string | null) ?? null,
+    address: (formData.get('org_address') as string | null) ?? null,
+    phone: (formData.get('org_phone') as string | null) ?? null,
+    email: (formData.get('org_email') as string | null) ?? null,
+    website: (formData.get('org_website') as string | null) ?? null,
+    legal: (formData.get('org_legal') as string | null) ?? null,
+    updated_by: user.id,
+    updated_at: new Date().toISOString(),
+  }
+
+  const { data: existing } = await supabase.from('org_settings').select('id').order('id', { ascending: true }).limit(1).maybeSingle()
+  let res
+  if (existing?.id) {
+    res = await supabase.from('org_settings').update(payload).eq('id', existing.id)
+  } else {
+    res = await supabase.from('org_settings').insert([payload])
+  }
+  if (res.error) return { ok: false, message: res.error.message }
+  revalidatePath('/admin/parametres')
+  return { ok: true, message: 'Coordonnées organisation mises à jour' }
+}
+
 // ---------- Wrappers Server Action (retourne void pour usage <form action>)
 export async function updateProfileAction(formData: FormData): Promise<void> {
   await updateProfile(formData)

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { randomUUID } from 'node:crypto'
+import { isAllowedUploadMime, enforceMaxSize, parseFormFields } from '@/lib/validation'
+import { z } from 'zod'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,10 +14,14 @@ export async function POST(request: NextRequest) {
 
     const form = await request.formData()
     const file = form.get('file') as File
-    const ticketId = form.get('ticket_id') as string
-    const label = (form.get('label') as string) || file?.name || 'Pièce jointe'
+    const parsed = parseFormFields(form, z.object({ ticket_id: z.string().uuid(), label: z.string().min(1).max(200).optional() }))
+    if (!parsed) {
+      return NextResponse.json({ error: 'Champs invalides' }, { status: 400 })
+    }
+    const ticketId = parsed.ticket_id
+    const label = parsed.label || file?.name || 'Pièce jointe'
 
-    if (!file || !ticketId) {
+    if (!file) {
       return NextResponse.json({ error: 'ticket_id et fichier requis' }, { status: 400 })
     }
 
@@ -31,6 +37,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Générer un chemin de fichier unique dans le bucket privé
+    // Validation fichier: type et taille
+    const withinSize = enforceMaxSize(10 * 1024 * 1024) // 10MB
+    if (!withinSize(file.size)) {
+      return NextResponse.json({ error: 'Fichier trop volumineux (max 10MB)' }, { status: 400 })
+    }
+    if (!isAllowedUploadMime(file.type)) {
+      return NextResponse.json({ error: 'Type de fichier non autorisé' }, { status: 400 })
+    }
+
     const ext = file.name.includes('.') ? file.name.split('.').pop() : 'bin'
     const uniqueName = `${randomUUID()}.${ext}`
     const storagePath = `tickets/${ticketId}/${uniqueName}`

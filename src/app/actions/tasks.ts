@@ -13,6 +13,16 @@ export async function createTask(data: CreateTaskData): Promise<{ success: boole
       return { success: false, error: 'Non authentifié' };
     }
 
+    // Défense en profondeur: vérifier l'appartenance au projet
+    const { data: authzProject } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('id', data.project_id)
+      .maybeSingle();
+    if (!authzProject) {
+      return { success: false, error: 'Accès au projet refusé' };
+    }
+
     const { data: task, error } = await supabase
       .from('tasks')
       .insert({
@@ -53,6 +63,25 @@ export async function updateTask(id: string, data: Partial<CreateTaskData>): Pro
       return { success: false, error: 'Non authentifié' };
     }
 
+    // Charger la tâche pour déterminer son projet, puis vérifier l'accès
+    const { data: existingTask } = await supabase
+      .from('tasks')
+      .select('id, project_id')
+      .eq('id', id)
+      .maybeSingle();
+    if (!existingTask) {
+      return { success: false, error: 'Tâche introuvable ou non autorisée' };
+    }
+    const targetProjectId = data.project_id ?? existingTask.project_id;
+    const { data: authzProject } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('id', targetProjectId)
+      .maybeSingle();
+    if (!authzProject) {
+      return { success: false, error: 'Accès au projet refusé' };
+    }
+
     const { data: task, error } = await supabase
       .from('tasks')
       .update(data)
@@ -85,6 +114,24 @@ export async function updateTaskPosition(data: UpdateTaskPositionData): Promise<
       return { success: false, error: 'Non authentifié' };
     }
 
+    // Vérifier que l'utilisateur a accès à la tâche (via son projet)
+    const { data: existingTask } = await supabase
+      .from('tasks')
+      .select('id, project_id')
+      .eq('id', data.id)
+      .maybeSingle();
+    if (!existingTask) {
+      return { success: false, error: 'Tâche introuvable ou non autorisée' };
+    }
+    const { data: authzProject } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('id', existingTask.project_id)
+      .maybeSingle();
+    if (!authzProject) {
+      return { success: false, error: 'Accès au projet refusé' };
+    }
+
     const { error } = await supabase
       .from('tasks')
       .update({
@@ -113,6 +160,24 @@ export async function deleteTask(id: string): Promise<{ success: boolean; error?
     const { data: user, error: authError } = await supabase.auth.getUser();
     if (authError || !user.user) {
       return { success: false, error: 'Non authentifié' };
+    }
+
+    // Vérifier l'accès au projet de la tâche avant suppression
+    const { data: existingTask } = await supabase
+      .from('tasks')
+      .select('id, project_id')
+      .eq('id', id)
+      .maybeSingle();
+    if (!existingTask) {
+      return { success: false, error: 'Tâche introuvable ou non autorisée' };
+    }
+    const { data: authzProject } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('id', existingTask.project_id)
+      .maybeSingle();
+    if (!authzProject) {
+      return { success: false, error: 'Accès au projet refusé' };
     }
 
     const { error } = await supabase

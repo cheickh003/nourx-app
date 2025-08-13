@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'node:crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { fetchWithTimeout } from '@/lib/fetch'
 
 export async function POST(request: NextRequest) {
   try {
     // Notifications CinetPay arrivent en form-data
     const headers = Object.fromEntries(request.headers)
     const xToken = headers['x-token'] as string | undefined
+    const secretKey = process.env.CINETPAY_SECRET_KEY
+    const apiKey = process.env.CINETPAY_APIKEY
+    const siteId = process.env.CINETPAY_SITE_ID
+
+    if (!secretKey || !apiKey || !siteId) {
+      return NextResponse.json({ error: 'Configuration CinetPay manquante' }, { status: 500 })
+    }
     const form = await request.formData()
 
     // Reconstitution de la chaîne d'HMAC EXACTE (ordre documenté)
@@ -31,11 +39,16 @@ export async function POST(request: NextRequest) {
     const concatenated = orderedKeys.map(k => String(form.get(k) ?? '')).join('')
 
     const computed = crypto
-      .createHmac('sha256', process.env.CINETPAY_SECRET_KEY!)
+      .createHmac('sha256', secretKey)
       .update(concatenated, 'utf8')
       .digest('hex')
 
-    if (!xToken || !crypto.timingSafeEqual(Buffer.from(xToken), Buffer.from(computed))) {
+    if (!xToken) {
+      return new NextResponse('invalid signature', { status: 401 })
+    }
+    const tokenBuf = Buffer.from(xToken, 'utf8')
+    const computedBuf = Buffer.from(computed, 'utf8')
+    if (tokenBuf.length !== computedBuf.length || !crypto.timingSafeEqual(tokenBuf, computedBuf)) {
       return new NextResponse('invalid signature', { status: 401 })
     }
 
@@ -59,14 +72,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérification serveur obligatoire
-    const checkRes = await fetch('https://api-checkout.cinetpay.com/v2/payment/check', {
+    const checkRes = await fetchWithTimeout('https://api-checkout.cinetpay.com/v2/payment/check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        apikey: process.env.CINETPAY_APIKEY!,
-        site_id: process.env.CINETPAY_SITE_ID!,
+        apikey: apiKey,
+        site_id: siteId,
         transaction_id: transactionId,
       }),
+      timeoutMs: 10000,
     })
     const check = await checkRes.json()
 

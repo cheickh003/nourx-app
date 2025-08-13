@@ -71,11 +71,15 @@ export async function updateClientAction(id: string, formData: FormData): Promis
   try {
     const supabase = await createClient();
     const name = formData.get('name') as string;
-    const contact_email = formData.get('contact_email') as string | null;
+    const contact_email = (formData.get('contact_email') as string | null) || null;
+    const phone = (formData.get('phone') as string | null) || null;
+    const address = (formData.get('address') as string | null) || null;
+    const website = (formData.get('website') as string | null) || null;
+    const legal = (formData.get('legal') as string | null) || null;
 
     if (!name) return { success: false, error: 'Nom requis' };
 
-    const { error } = await supabase.from('clients').update({ name, contact_email }).eq('id', id);
+    const { error } = await supabase.from('clients').update({ name, contact_email, phone, address, website, legal }).eq('id', id);
     if (error) throw error;
 
     revalidatePath('/admin/clients');

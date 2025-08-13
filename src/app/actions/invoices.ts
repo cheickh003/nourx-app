@@ -1,9 +1,10 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { type Invoice, type Quote, type CreateQuoteData, type CreateInvoiceData, type QuoteStatus, type InvoiceStatus, type QuoteItem, type InvoiceItem } from '@/types/database'
+import { sendEmail, renderSimpleTemplate } from '@/lib/email/nodemailer'
+import { revalidatePath } from 'next/cache'
 
 export async function listClientInvoices(): Promise<{ success: boolean; data: Invoice[]; error?: string }> {
   try {
@@ -49,15 +50,34 @@ export async function listClientQuotes(): Promise<{ data: Quote[]; error?: strin
     const { data: userRes, error: authErr } = await supabase.auth.getUser()
     if (authErr || !userRes?.user) return { data: [], error: 'Non authentifié' }
 
+    // Limiter aux clients liés à l'utilisateur (aligné avec listClientInvoices)
+    const { data: memberships, error: memErr } = await supabase
+      .from('client_members')
+      .select('client_id')
+      .eq('user_id', userRes.user.id)
+
+    if (memErr) {
+      console.error('listClientQuotes memberships error', memErr)
+      return { data: [], error: 'Erreur chargement des devis' }
+    }
+
+    const clientIds = (memberships ?? []).map(m => m.client_id)
+    if (clientIds.length === 0) return { data: [] }
+
     const { data, error } = await supabase
       .from('quotes')
-      .select('*')
+      .select(`
+        *,
+        clients (name),
+        projects (name)
+      `)
+      .in('client_id', clientIds)
       .order('created_at', { ascending: false })
 
     if (error) throw error
     return { data: (data ?? []) as Quote[] }
   } catch (e) {
-    console.error('listClientQuotes error', e)
+    console.error('listClientQuotes error', e instanceof Error ? e.message : e)
     return { data: [], error: 'Erreur chargement des devis' }
   }
 }
@@ -268,6 +288,63 @@ export async function acceptQuote(quoteId: string): Promise<{ success: boolean; 
   } catch (error: unknown) {
     console.error('Error accepting quote:', error);
     return { success: false, error: (error as Error).message || 'Erreur inattendue lors de l\'acceptation du devis' };
+  }
+}
+
+export async function sendQuote(quoteId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+    const { data: user, error: authError } = await supabase.auth.getUser();
+    if (authError || !user.user) {
+      return { success: false, error: 'Non authentifié' };
+    }
+
+    // Charger le devis + email du client
+    const { data: quote, error: fetchErr } = await supabase
+      .from('quotes')
+      .select(`id, number, status, expires_at, currency, total_ttc, clients(contact_email)`) 
+      .eq('id', quoteId)
+      .single();
+
+    if (fetchErr || !quote) {
+      return { success: false, error: 'Devis introuvable' };
+    }
+
+    // Mettre à jour le statut et une date d'expiration par défaut si absente (J+14)
+    const defaultExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const { error: updErr } = await supabase
+      .from('quotes')
+      .update({ status: 'sent' as QuoteStatus, expires_at: (quote as { expires_at?: string | null }).expires_at ?? defaultExpiry })
+      .eq('id', quoteId);
+
+    if (updErr) {
+      console.error('sendQuote update error', updErr);
+      return { success: false, error: "Erreur lors de la mise à jour du devis" };
+    }
+
+    // Envoyer l'email au client
+    try {
+      const to = (quote as { clients?: { contact_email?: string | null } })?.clients?.contact_email ?? undefined;
+      if (to) {
+        const base = process.env.NEXT_PUBLIC_BASE_URL || process.env.APP_URL || 'http://localhost:3000';
+        const pdfUrl = `${base}/api/quotes/${quoteId}/pdf`;
+        const subject = `[NOURX] Devis ${quote.number}`;
+        const html = renderSimpleTemplate(
+          'Votre devis',
+          `Bonjour,<br/>Veuillez trouver votre devis <b>${quote.number}</b> d'un montant de <b>${Number((quote as { total_ttc: number }).total_ttc).toFixed(2)} ${(quote as { currency: string }).currency}</b>.<br/><br/>Consultez/Téléchargez: <a href="${pdfUrl}">${pdfUrl}</a>`
+        );
+        await sendEmail({ to, subject, html });
+      }
+    } catch (mailErr) {
+      console.warn('sendQuote mail error (non bloquant)', mailErr);
+    }
+
+    revalidatePath('/admin/factures-devis');
+    revalidatePath(`/admin/factures-devis/devis/${quoteId}`);
+    return { success: true };
+  } catch (e: unknown) {
+    console.error('sendQuote error', e);
+    return { success: false, error: e instanceof Error ? e.message : 'Erreur lors de l\'envoi du devis' };
   }
 }
 

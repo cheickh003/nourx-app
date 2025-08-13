@@ -41,7 +41,7 @@ async function RoadmapContent() {
     .eq('user_id', user.id)
     .single();
 
-  if (!clientMembership?.clients || !Array.isArray(clientMembership.clients)) {
+  if (!clientMembership?.clients) {
     return (
       <div className="flex flex-col gap-6">
         <div>
@@ -66,8 +66,8 @@ async function RoadmapContent() {
     );
   }
 
-  const clientData = clientMembership.clients[0];
-  if (!clientData?.projects || clientData.projects.length === 0) {
+  const clientData = clientMembership.clients as unknown as { id: string; name: string; projects?: { id: string; name: string }[] } | null
+  if (!clientData || !Array.isArray(clientData.projects) || clientData.projects.length === 0) {
     return (
       <div className="flex flex-col gap-6">
         <div>
@@ -104,7 +104,7 @@ async function RoadmapContent() {
         <div>
           <h1 className="text-3xl font-bold">Feuille de Route</h1>
           <p className="text-muted-foreground">
-            Projet: {project.title} • {milestones.length} jalon(s)
+            Projet: {project.name} • {milestones.length} jalon(s)
           </p>
         </div>
         

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { fetchWithTimeout } from '@/lib/fetch'
 
 async function handleReturn(req: NextRequest) {
   const url = new URL(req.url)
@@ -29,7 +30,7 @@ async function handleReturn(req: NextRequest) {
     // Optionnel: check immédiat côté serveur pour retour UX plus précis
     let statusParam = 'pending=1'
     try {
-      const checkRes = await fetch('https://api-checkout.cinetpay.com/v2/payment/check', {
+      const checkRes = await fetchWithTimeout('https://api-checkout.cinetpay.com/v2/payment/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -37,6 +38,7 @@ async function handleReturn(req: NextRequest) {
           site_id: process.env.CINETPAY_SITE_ID!,
           transaction_id: transactionId,
         }),
+        timeoutMs: 10000,
       })
       const check = await checkRes.json()
       const status = String(check?.data?.status ?? '').toUpperCase()

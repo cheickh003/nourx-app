@@ -8,7 +8,9 @@ import {
   updatePassword, 
   updatePreferences, 
   updateProfile, 
-  uploadAvatar 
+  uploadAvatar,
+  getOrgSettings,
+  updateOrgSettings
 } from "@/app/actions/settings"
 
 export default async function AdminParametresPage() {
@@ -21,6 +23,8 @@ export default async function AdminParametresPage() {
     .select("user_id, full_name, phone, avatar_url, preferences, role")
     .eq("user_id", user?.id ?? "")
     .single()
+
+  const org = await getOrgSettings()
 
   const initials =
     profile?.full_name?.split(" ")
@@ -125,6 +129,44 @@ export default async function AdminParametresPage() {
           <Button type="submit">Enregistrer</Button>
         </form>
       </div>
+
+      {/* Coordonnées organisation (admin) */}
+      {profile?.role === 'admin' && (
+        <div className="rounded-lg border bg-card p-6">
+          <h2 className="text-xl font-semibold mb-4">Coordonnées société (PDF/Emails)</h2>
+          <form action={async (formData: FormData) => { 'use server'; await updateOrgSettings(formData) }} className="grid gap-4 max-w-2xl">
+            <div className="grid gap-2">
+              <Label htmlFor="org_name">Nom</Label>
+              <Input id="org_name" name="org_name" defaultValue={org?.name ?? 'NOURX'} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="org_address">Adresse</Label>
+              <Input id="org_address" name="org_address" defaultValue={org?.address ?? ''} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="org_phone">Téléphone</Label>
+                <Input id="org_phone" name="org_phone" defaultValue={org?.phone ?? ''} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="org_email">Email</Label>
+                <Input id="org_email" name="org_email" type="email" defaultValue={org?.email ?? ''} />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="org_website">Site web</Label>
+              <Input id="org_website" name="org_website" defaultValue={org?.website ?? ''} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="org_legal">Mentions légales (pied de page PDF)</Label>
+              <Input id="org_legal" name="org_legal" defaultValue={org?.legal ?? ''} />
+            </div>
+            <div className="flex justify-end">
+              <Button type="submit">Enregistrer</Button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   )
 }

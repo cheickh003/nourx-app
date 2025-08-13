@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { fetchWithTimeout } from '@/lib/fetch'
 
 function isMultipleOfFive(amount: number, currency: string): boolean {
   if (currency.toUpperCase() === 'USD') return true
@@ -68,10 +69,11 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       channels: 'ALL',
     }
 
-    const initRes = await fetch('https://api-checkout.cinetpay.com/v2/payment', {
+    const initRes = await fetchWithTimeout('https://api-checkout.cinetpay.com/v2/payment', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      timeoutMs: 10000,
     })
 
     const initData = await initRes.json()

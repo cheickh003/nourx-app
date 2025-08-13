@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { randomUUID } from 'node:crypto';
+import { isAllowedUploadMime, enforceMaxSize, parseFormFields } from '@/lib/validation';
+import { z } from 'zod';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,12 +20,15 @@ export async function POST(request: NextRequest) {
     // Récupérer les données du formulaire
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const projectId = formData.get('projectId') as string;
-    const label = formData.get('label') as string;
+    const fields = parseFormFields(formData, z.object({ projectId: z.string().uuid(), label: z.string().min(1).max(200) }))
+    if (!fields) {
+      return NextResponse.json({ error: 'Champs invalides' }, { status: 400 })
+    }
+    const { projectId, label } = fields
 
-    if (!file || !projectId || !label) {
+    if (!file) {
       return NextResponse.json(
-        { error: 'Fichier, ID du projet et libellé requis' },
+        { error: 'Fichier requis' },
         { status: 400 }
       );
     }
@@ -52,8 +58,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Générer un nom de fichier unique
-    const fileExtension = file.name.split('.').pop();
-    const uniqueFileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
+    // Validation fichier: type et taille
+    const withinSize = enforceMaxSize(10 * 1024 * 1024) // 10MB
+    if (!withinSize(file.size)) {
+      return NextResponse.json(
+        { error: 'Fichier trop volumineux (max 10MB)' },
+        { status: 400 }
+      );
+    }
+    if (!isAllowedUploadMime(file.type)) {
+      return NextResponse.json(
+        { error: 'Type de fichier non autorisé' },
+        { status: 400 }
+      );
+    }
+
+    const fileExtension = file.name.includes('.') ? file.name.split('.').pop() : 'bin';
+    const uniqueFileName = `${randomUUID()}.${fileExtension}`;
     const storagePath = `project-${projectId}/${uniqueFileName}`;
 
     // Upload vers Supabase Storage

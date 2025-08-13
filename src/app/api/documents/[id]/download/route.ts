@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+interface DocumentRow {
+  id: string
+  storage_bucket: string
+  storage_path: string
+  project_id: string
+  projects?: { id: string; client_id: string } | { id: string; client_id: string }[] | null
+}
+
 export async function GET(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await createClient();
@@ -14,14 +22,14 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
       );
     }
 
-      const { id: documentId } = await context.params;
+    const { id: documentId } = await context.params;
 
     // Récupérer les informations du document
     const { data: document, error: documentError } = await supabase
       .from('documents')
-      .select(`id, storage_bucket, storage_path, projects(id, client_id)`) // relation projects doit exister dans schema
+      .select('id, storage_bucket, storage_path, project_id, projects(id, client_id)')
       .eq('id', documentId)
-      .single();
+      .single<DocumentRow>();
 
     if (documentError || !document) {
       return NextResponse.json({ error: 'Document introuvable' }, { status: 404 });
@@ -35,10 +43,14 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
       .single();
 
     if (profile?.role !== 'admin') {
+      const projects = document.projects
+      const clientId: string | undefined = Array.isArray(projects)
+        ? projects[0]?.client_id
+        : projects?.client_id
       const { data: membership, error: membershipError } = await supabase
         .from('client_members')
         .select('id')
-        .eq('client_id', (document as { projects: Array<{ client_id: string }> }).projects[0]?.client_id)
+        .eq('client_id', clientId as string)
         .eq('user_id', user.id)
         .maybeSingle();
       if (membershipError || !membership) {
@@ -48,8 +60,8 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
 
     // Créer une URL signée pour télécharger le fichier (valide 5 minutes)
     const { data: signedUrl, error: signedUrlError } = await supabase.storage
-      .from((document as { storage_bucket: string }).storage_bucket)
-      .createSignedUrl((document as { storage_path: string }).storage_path, 300); // 5 minutes
+      .from(document.storage_bucket)
+      .createSignedUrl(document.storage_path, 300); // 5 minutes
 
     if (signedUrlError || !signedUrl) {
       console.error('Erreur création URL signée:', signedUrlError);
