@@ -54,7 +54,12 @@ export async function createClientAction(formData: FormData): Promise<{ success:
         const subject = `[NOURX] Accès à votre espace client`;
         const html = renderSimpleTemplate(
           'Bienvenue sur NOURX',
-          `Bonjour,<br/>Votre compte a été créé.<br/>Email: <b>${user_email}</b><br/>Mot de passe temporaire: <b>${tempPassword}</b><br/><br/>Connectez-vous: <a href="${appUrl}/auth/sign-in">${appUrl}/auth/sign-in</a>`
+          `Bonjour,<br/><br/>Votre espace client a été créé avec succès.<br/><br/>
+           Identifiants de connexion:<br/>
+           • Email: <b>${user_email}</b><br/>
+           • Mot de passe temporaire: <b>${tempPassword}</b><br/><br/>
+           Cliquez pour vous connecter: <a href="${appUrl}/auth/sign-in" style="color:#2563eb;text-decoration:none;">${appUrl}/auth/sign-in</a>`,
+          { preheader: 'Votre accès NOURX est prêt' }
         );
         await sendEmail({ to: user_email, subject, html });
       }

@@ -105,7 +105,14 @@ export async function convertProspectToClient(id: string): Promise<{ success: bo
         await admin.from('client_members').insert({ user_id: created.user.id, client_id: client.id, is_primary: true });
         const appUrl = process.env.APP_URL || 'http://localhost:3000';
         const subject = `[NOURX] Accès à votre espace client`;
-        const html = renderSimpleTemplate('Bienvenue sur NOURX', `Bonjour,<br/>Votre compte a été créé.<br/>Email: <b>${prospect.email}</b><br/>Mot de passe temporaire: <b>${tempPassword}</b><br/><br/>Connectez-vous: <a href="${appUrl}/auth/sign-in">${appUrl}/auth/sign-in</a>`);
+        const html = renderSimpleTemplate(
+          'Bienvenue sur NOURX',
+          `Bonjour,<br/><br/>Votre compte a été créé.<br/>
+           • Email: <b>${prospect.email}</b><br/>
+           • Mot de passe temporaire: <b>${tempPassword}</b><br/><br/>
+           Connexion: <a href="${appUrl}/auth/sign-in" style="color:#2563eb;text-decoration:none;">${appUrl}/auth/sign-in</a>`,
+          { preheader: 'Vos identifiants temporaires NOURX' }
+        );
         await sendEmail({ to: prospect.email, subject, html });
       }
     }

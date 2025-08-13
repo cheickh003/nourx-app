@@ -331,7 +331,9 @@ export async function sendQuote(quoteId: string): Promise<{ success: boolean; er
         const subject = `[NOURX] Devis ${quote.number}`;
         const html = renderSimpleTemplate(
           'Votre devis',
-          `Bonjour,<br/>Veuillez trouver votre devis <b>${quote.number}</b> d'un montant de <b>${Number((quote as { total_ttc: number }).total_ttc).toFixed(2)} ${(quote as { currency: string }).currency}</b>.<br/><br/>Consultez/Téléchargez: <a href="${pdfUrl}">${pdfUrl}</a>`
+          `Bonjour,<br/><br/>Veuillez trouver votre devis <b>${quote.number}</b> d'un montant de <b>${Number((quote as { total_ttc: number }).total_ttc).toFixed(2)} ${(quote as { currency: string }).currency}</b>.<br/><br/>
+           Consulter / Télécharger le PDF: <a href="${pdfUrl}" style="color:#2563eb;text-decoration:none;">${pdfUrl}</a>`,
+          { preheader: `Devis ${quote.number}` }
         );
         await sendEmail({ to, subject, html });
       }

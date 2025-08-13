@@ -80,7 +80,14 @@ export async function createTicket(data: CreateTicketData) {
       .single()
 
     const subject = `[NOURX] Ticket créé: ${ticket.subject}`
-    const html = renderSimpleTemplate('Ticket créé', `Votre ticket a été créé.<br/>Sujet: <b>${ticket.subject}</b>.<br/>Réf: ${ticket.id}`)
+    const html = renderSimpleTemplate(
+      'Votre ticket a bien été créé',
+      `Bonjour,<br/><br/>Nous avons bien reçu votre demande.<br/>
+       • Sujet: <b>${ticket.subject}</b><br/>
+       • Référence: <b>${ticket.id}</b><br/><br/>
+       Nous reviendrons vers vous dans les meilleurs délais.`,
+      { preheader: 'Confirmation de création de ticket' }
+    )
     const to = client?.contact_email || 'no-reply@nourx.local'
     await sendEmail({ to, subject, html })
   } catch (err) {
@@ -126,7 +133,11 @@ export async function replyTicket(ticketId: string, body: string, visibility: 'p
         const to = client?.contact_email || ''
         if (to) {
           const subject = `[NOURX] Nouveau message sur votre ticket: ${t.subject}`
-          const html = renderSimpleTemplate('Nouveau message', body.replace(/\n/g, '<br/>'))
+          const html = renderSimpleTemplate(
+            'Nouveau message sur votre ticket',
+            `${body.replace(/\n/g, '<br/>')}`,
+            { preheader: 'Vous avez reçu une réponse' }
+          )
           const res = await sendEmail({ to, subject, html })
           if (res.ok) {
             await supabase.from('email_events').insert({ ticket_id: ticketId, event_type: 'ticket.message.created', recipient: to, status: 'sent', provider_id: res.id ?? null, payload_excerpt: body.slice(0, 200) })
@@ -176,7 +187,11 @@ export async function changeTicketStatus(ticketId: string, status: TicketStatus)
       const to = client?.contact_email || ''
       if (to) {
         const subject = `[NOURX] Statut mis à jour: ${t.subject}`
-        const html = renderSimpleTemplate('Changement de statut', `Le ticket <b>${t.subject}</b> est maintenant: <b>${status}</b>.`)
+        const html = renderSimpleTemplate(
+          'Statut de votre ticket mis à jour',
+          `Le ticket <b>${t.subject}</b> est maintenant: <b>${status}</b>.`,
+          { preheader: 'Mise à jour de statut' }
+        )
         const res = await sendEmail({ to, subject, html })
         await supabase.from('email_events').insert({ ticket_id: ticketId, event_type: 'ticket.status.changed', recipient: to, status: res.ok ? 'sent' : 'failed', provider_id: res.id ?? null, payload_excerpt: status })
       }

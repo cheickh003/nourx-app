@@ -30,7 +30,11 @@ export async function POST(req: NextRequest) {
         const subject = type === 'pre'
           ? `[NOURX] Rappel SLA: première réponse imminente`
           : `[NOURX] SLA dépassé: première réponse en retard`
-        const html = renderSimpleTemplate('Rappel SLA', `Ticket: <b>${t.subject}</b><br/>Type: ${type === 'pre' ? 'Pré-échéance' : 'Dépassement'}`)
+    const html = renderSimpleTemplate(
+      'Rappel SLA',
+      `Ticket: <b>${t.subject}</b><br/>Type: ${type === 'pre' ? 'Pré-échéance' : 'Dépassement'}`,
+      { preheader: 'Rappel automatique SLA' }
+    )
 
         const res = await sendEmail({ to, subject, html })
         await admin.from('email_events').insert({
