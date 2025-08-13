@@ -15,6 +15,7 @@ function createTransport() {
 
   if (!host || !user || !pass) {
     // Mode développement: console fallback
+    console.warn('[email] SMTP non configuré — bascule en jsonTransport (aucun email réel ne sera envoyé)')
     return nodemailer.createTransport({ jsonTransport: true })
   }
 
@@ -28,10 +29,24 @@ function createTransport() {
 
 export async function sendEmail({ to, subject, html }: SendEmailInput): Promise<{ ok: boolean; id?: string; error?: string }> {
   try {
-    const from = process.env.SMTP_FROM || 'NOURX <no-reply@nourx.local>'
+    const configuredFrom = process.env.SMTP_FROM || process.env.SMTP_USER || ''
+    const from = /<.+?>/.test(configuredFrom)
+      ? configuredFrom
+      : configuredFrom
+        ? `NOURX <${configuredFrom}>`
+        : 'NOURX <no-reply@nourx.local>'
     const transporter = createTransport()
-    const info = await transporter.sendMail({ from, to, subject, html })
-    return { ok: true, id: info.messageId }
+    const toList = Array.isArray(to) ? to : [to]
+    const envelopeFrom = (from.match(/<(.+?)>/)?.[1] || configuredFrom || 'no-reply@nourx.local')
+    const info = await transporter.sendMail({ from, to: toList, subject, html, envelope: { from: envelopeFrom, to: toList } })
+    // Log minimal en prod et aperçu complet en mode jsonTransport
+    const infoAny = info as unknown as { messageId?: string; message?: string }
+    if (typeof infoAny?.message === 'string') {
+      console.log('[email] Aperçu (jsonTransport):', infoAny.message)
+    } else {
+      console.log('[email] envoyé:', { to: toList, subject, id: infoAny?.messageId })
+    }
+    return { ok: true, id: infoAny?.messageId }
   } catch (error) {
     console.error('[email] nodemailer error:', error)
     return { ok: false, error: (error as Error).message }

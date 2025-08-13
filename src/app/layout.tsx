@@ -38,12 +38,13 @@ export const metadata: Metadata = {
     title: 'NOURX — Portail clients & admin',
     description: 'Gestion de projets, jalons, tâches, documents et facturation — NOURX',
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-  },
 };
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+} satisfies import('next').Viewport;
 
 export default function RootLayout({
   children,
