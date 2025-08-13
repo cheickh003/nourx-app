@@ -12,6 +12,8 @@ import Link from 'next/link';
 import { ProjectCreateForm } from '@/components/admin/project-create-form';
 import { ProjectRowActions } from '@/components/admin/project-edit-actions';
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminProjetsPage() {
   const { data: projects, error } = await getAllProjects();
 
