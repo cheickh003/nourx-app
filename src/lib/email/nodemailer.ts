@@ -41,7 +41,7 @@ export async function sendEmail({ to, subject, html }: SendEmailInput): Promise<
     const toList = Array.isArray(to) ? to : [to]
     const envelopeFrom = (from.match(/<(.+?)>/)?.[1] || configuredFrom || 'no-reply@nourx.local')
     // Joindre le logo en inline (cid) si disponible
-    let attachments: Array<{ filename: string; content: Buffer; cid: string }> = []
+    const attachments: Array<{ filename: string; content: Buffer; cid: string }> = []
     try {
       const logoPath = path.join(process.cwd(), 'public', 'CNourx.png')
       const logo = await readFile(logoPath)
