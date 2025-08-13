@@ -1,4 +1,6 @@
 import nodemailer from 'nodemailer'
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
 
 export interface SendEmailInput {
   to: string | string[]
@@ -38,7 +40,18 @@ export async function sendEmail({ to, subject, html }: SendEmailInput): Promise<
     const transporter = createTransport()
     const toList = Array.isArray(to) ? to : [to]
     const envelopeFrom = (from.match(/<(.+?)>/)?.[1] || configuredFrom || 'no-reply@nourx.local')
-    const info = await transporter.sendMail({ from, to: toList, subject, html, envelope: { from: envelopeFrom, to: toList } })
+    // Joindre le logo en inline (cid) si disponible
+    let attachments: Array<{ filename: string; content: Buffer; cid: string }> = []
+    try {
+      const logoPath = path.join(process.cwd(), 'public', 'CNourx.png')
+      const logo = await readFile(logoPath)
+      attachments.push({ filename: 'CNourx.png', content: logo, cid: 'nourx-logo' })
+    } catch {
+      // pas de logo en local (environnements serverless) → l'image peut ne pas s'afficher si src=cid
+      // le template reste minimal même sans logo
+    }
+
+    const info = await transporter.sendMail({ from, to: toList, subject, html, envelope: { from: envelopeFrom, to: toList }, attachments })
     // Log minimal en prod et aperçu complet en mode jsonTransport
     const infoAny = info as unknown as { messageId?: string; message?: string }
     if (typeof infoAny?.message === 'string') {
@@ -59,6 +72,7 @@ export function renderSimpleTemplate(
   options?: { preheader?: string; footer?: string }
 ) {
   const base = process.env.NEXT_PUBLIC_BASE_URL || process.env.APP_URL || 'http://localhost:3000'
+  const logoSrc = 'cid:nourx-logo'
   const preheader = options?.preheader || ''
   const footer = options?.footer || '© NOURX. Tous droits réservés.'
 
@@ -74,7 +88,7 @@ export function renderSimpleTemplate(
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
             <tr>
               <td align="left">
-                <img src="${base}/CNourx.png" alt="NOURX" width="120" style="display:block;height:auto;border:0;outline:none;text-decoration:none;filter:brightness(0);" />
+                <img src="${logoSrc}" alt="NOURX" width="120" style="display:block;height:auto;border:0;outline:none;text-decoration:none;filter:brightness(0);" />
               </td>
             </tr>
           </table>
