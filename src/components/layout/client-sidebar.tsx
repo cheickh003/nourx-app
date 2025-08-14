@@ -61,7 +61,7 @@ const navigation = [
   },
 ];
 
-export function ClientSidebar() {
+export function ClientSidebar({ variant = 'desktop' }: { variant?: 'desktop' | 'mobile' }) {
   const pathname = usePathname();
   const supabase = createClient();
 
@@ -70,8 +70,14 @@ export function ClientSidebar() {
     window.location.href = '/auth/sign-in';
   };
 
+  const containerClass = cn(
+    variant === 'desktop'
+      ? 'hidden lg:flex h-full w-64 flex-col bg-card border-r'
+      : 'flex h-full w-full flex-col bg-card'
+  );
+
   return (
-    <div className="flex h-full w-64 flex-col bg-card border-r">
+    <div className={containerClass}>
       <div className="flex h-16 items-center justify-center px-6 border-b">
         <Image src="/CNourx.png" alt="Logo" width={110} height={24} priority />
       </div>

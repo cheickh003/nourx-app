@@ -4,6 +4,9 @@ import { AdminSidebar } from '@/components/layout/admin-sidebar';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Menu } from 'lucide-react';
 
 export default function AdminLayout({
   children,
@@ -20,10 +23,22 @@ export default function AdminLayout({
     })
   ]
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex min-h-dvh bg-background">
       <AdminSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="flex h-16 items-center border-b px-6">
+        <header className="flex h-16 items-center border-b px-4 sm:px-6">
+          <div className="lg:hidden mr-2">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Ouvrir la navigation">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0">
+                <AdminSidebar variant="mobile" />
+              </SheetContent>
+            </Sheet>
+          </div>
           <Breadcrumb>
             <BreadcrumbList>
               {crumbs.map((c, i) => (
@@ -44,7 +59,7 @@ export default function AdminLayout({
           </Breadcrumb>
         </header>
         
-        <div className="flex-1 overflow-auto p-6">
+        <div className="flex-1 overflow-auto p-4 sm:p-6">
           {children}
         </div>
       </main>
