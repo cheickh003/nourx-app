@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { CreateTaskData, Task, UpdateTaskPositionData, TaskWithDetails } from '@/types/database';
+import { CreateTaskData, Task, UpdateTaskPositionData, TaskWithDetails, TaskStatus } from '@/types/database';
 
 export async function createTask(data: CreateTaskData): Promise<{ success: boolean; data?: Task; error?: string }> {
   try {
@@ -150,6 +150,46 @@ export async function updateTaskPosition(data: UpdateTaskPositionData): Promise<
   } catch (error) {
     console.error('Erreur mise à jour position tâche:', error);
     return { success: false, error: 'Erreur lors de la mise à jour de la position' };
+  }
+}
+
+export async function bulkReorderTasks(
+  projectId: string,
+  targetStatus: TaskStatus,
+  orderedTaskIds: string[]
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    const { data: user, error: authError } = await supabase.auth.getUser();
+    if (authError || !user.user) {
+      return { success: false, error: 'Non authentifié' };
+    }
+
+    // Vérifier accès projet
+    const { data: authzProject } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('id', projectId)
+      .maybeSingle();
+    if (!authzProject) {
+      return { success: false, error: 'Accès au projet refusé' };
+    }
+
+    // Construire updates positions
+    const updates = orderedTaskIds.map((taskId, index) => ({ id: taskId, position: index, status: targetStatus }));
+
+    // Mettre à jour en lot (une requête par id via upsert par clé primaire)
+    const { error } = await supabase.from('tasks').upsert(updates, { onConflict: 'id' });
+    if (error) {
+      console.error('Erreur bulk reorder tâches:', error);
+      return { success: false, error: 'Erreur lors du réordonnancement' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Erreur bulk reorder tâches:', error);
+    return { success: false, error: 'Erreur lors du réordonnancement' };
   }
 }
 

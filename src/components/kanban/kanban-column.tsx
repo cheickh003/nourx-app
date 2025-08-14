@@ -13,7 +13,6 @@ interface KanbanColumnProps {
   title: string;
   color: string;
   tasks: TaskWithDetails[];
-  projectId: string;
   onAddTask?: (status: TaskStatus) => void;
 }
 
@@ -22,7 +21,6 @@ export function KanbanColumn({
   title, 
   color, 
   tasks, 
-  projectId, 
   onAddTask 
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({

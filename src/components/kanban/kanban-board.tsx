@@ -12,9 +12,9 @@ import {
   useSensors,
   closestCorners
 } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+// import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { TaskWithDetails, TaskStatus } from '@/types/database';
-import { updateTaskPosition } from '@/app/actions/tasks';
+import { bulkReorderTasks } from '@/app/actions/tasks';
 import { KanbanColumn } from './kanban-column';
 import { TaskCard } from './task-card';
 import { toast } from 'sonner';
@@ -147,27 +147,12 @@ export function KanbanBoard({ tasks, projectId, onTaskUpdate }: KanbanBoardProps
     try {
       // Calculer les nouvelles positions pour toutes les tâches affectées
       const tasksInNewColumn = tasksByStatus[newStatus].filter(t => t.id !== activeTaskId);
-      
       // Insérer la tâche à la nouvelle position
       tasksInNewColumn.splice(newPosition, 0, { ...activeTask, status: newStatus });
-      
-      // Recalculer les positions
-      const updates = tasksInNewColumn.map((task, index) => ({
-        id: task.id,
-        status: newStatus,
-        position: index
-      }));
-
-      // Mettre à jour dans la base de données
-      await Promise.all(
-        updates.map(update => 
-          updateTaskPosition({
-            id: update.id,
-            status: update.status,
-            position: update.position
-          })
-        )
-      );
+      // Construire l'ordre final des IDs
+      const orderedIds = tasksInNewColumn.map(t => t.id);
+      // Mettre à jour en lot
+      await bulkReorderTasks(projectId, newStatus, orderedIds);
 
       // Notifier la mise à jour
       if (onTaskUpdate) {
@@ -199,7 +184,6 @@ export function KanbanBoard({ tasks, projectId, onTaskUpdate }: KanbanBoardProps
             title={COLUMN_CONFIG[status].title}
             color={COLUMN_CONFIG[status].color}
             tasks={tasksByStatus[status]}
-            projectId={projectId}
           />
         ))}
       </div>

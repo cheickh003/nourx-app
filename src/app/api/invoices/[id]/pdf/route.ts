@@ -150,7 +150,7 @@ export async function GET(
       y -= 20; page.drawText('Aucun élément.', { x: tableX + 8, y, size: 11, font }); y -= 8;
     } else {
       for (const it of items) {
-        const rowTop = y + 16;
+        // row top used to compute layout if needed later
         // Désignation wrap
         const lines = wrap(String(it.label), cols[1] - 16, 11);
         for (const [i, ln] of lines.entries()) {

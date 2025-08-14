@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { Upload, File, X, AlertCircle } from 'lucide-react';
+import { Upload, File, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface DocumentUploadProps {

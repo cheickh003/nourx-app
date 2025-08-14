@@ -60,7 +60,7 @@ export function MilestoneTimeline({ milestones, className }: MilestoneTimelinePr
       <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-200"></div>
 
       <div className="space-y-6">
-        {sortedMilestones.map((milestone, index) => {
+        {sortedMilestones.map((milestone) => {
           const overdue = isOverdue(milestone);
           
           return (
@@ -142,12 +142,6 @@ export function MilestoneTimeline({ milestones, className }: MilestoneTimelinePr
             <div className="flex items-center gap-4">
               {['done', 'doing', 'todo', 'blocked'].map(status => {
                 const count = milestones.filter(m => m.status === status).length;
-                const labels = {
-                  done: 'Terminés',
-                  doing: 'En cours',
-                  todo: 'À faire',
-                  blocked: 'Bloqués'
-                };
                 
                 return count > 0 ? (
                   <div key={status} className="flex items-center gap-1">

@@ -50,7 +50,7 @@ export async function listMyDocuments(): Promise<{ success: boolean; data?: Docu
     }
 
     return { success: true, data: data || [] };
-  } catch (e) {
+  } catch {
     return { success: false, error: 'Erreur lors de la récupération des documents' };
   }
 }

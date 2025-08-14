@@ -10,6 +10,8 @@ import { CalendarDays, Search, User, Target /*, Plus*/ } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
+export const dynamic = 'force-dynamic'
+
 async function getAllClients() {
   const supabase = await createClient();
   

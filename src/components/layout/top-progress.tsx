@@ -18,7 +18,7 @@ export function TopProgressBar() {
     setVisible(true);
     setWidth(10);
     // accelerate a bit
-    timerRef.current && clearTimeout(timerRef.current);
+    if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => setWidth(65), 120);
   }
 
@@ -26,7 +26,7 @@ export function TopProgressBar() {
     activeRef.current = Math.max(0, activeRef.current - 1);
     if (activeRef.current === 0) {
       setWidth(100);
-      timerRef.current && clearTimeout(timerRef.current);
+      if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         setVisible(false);
         setWidth(0);

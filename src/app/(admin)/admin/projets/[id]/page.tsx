@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { CalendarDays, FileText, Target, CheckCircle, ArrowLeft } from 'lucide-react'
+import { FileText, Target, CheckCircle, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -11,6 +11,8 @@ import { getProjectStats } from '@/app/actions/projects'
 import { DocumentUpload } from '@/components/documents/document-upload'
 import { DocumentList } from '@/components/documents/document-list'
 import { Document } from '@/types/database'
+
+export const dynamic = 'force-dynamic'
 
 async function getProjectFull(projectId: string) {
   const supabase = await createClient()

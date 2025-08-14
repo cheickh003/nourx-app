@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, CalendarDays, User, ListChecks, Pencil, Trash2, Send } from 'lucide-react'
+import { ArrowLeft, CalendarDays, User, Pencil, Trash2, Send } from 'lucide-react'
+
+export const dynamic = 'force-dynamic'
 
 export default async function AdminTaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params

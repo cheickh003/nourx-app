@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CalendarDays, Search, User, Target, Plus, Mail, Phone } from 'lucide-react';
+import { CalendarDays, Search, User, Mail, Phone } from 'lucide-react';
 import { ProspectCreateButton, ProspectRowActions } from '@/components/admin/prospect-actions';
 import { createClient } from '@/lib/supabase/server';
 

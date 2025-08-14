@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -48,7 +48,7 @@ export function ItemsManager({ documentId, documentType, onTotalsUpdated }: Item
     vat_rate: 18.0, // TVA par défaut
   });
 
-  const fetchItems = async () => {
+  const fetchItems = useCallback(async () => {
     setIsLoading(true);
     try {
       const result = documentType === 'quote' 
@@ -66,11 +66,11 @@ export function ItemsManager({ documentId, documentType, onTotalsUpdated }: Item
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [documentId, documentType]);
 
   useEffect(() => {
     fetchItems();
-  }, [documentId, documentType]);
+  }, [fetchItems]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

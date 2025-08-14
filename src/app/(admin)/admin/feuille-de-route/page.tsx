@@ -10,6 +10,8 @@ import { fr } from 'date-fns/locale';
 import { MilestonePageActions } from './milestone-page-actions';
 import { MilestoneCreateDialog } from '@/components/admin/milestone-create-dialog';
 
+export const dynamic = 'force-dynamic'
+
 async function getAllMilestones() {
   const supabase = await createClient();
   

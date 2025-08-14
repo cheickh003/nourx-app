@@ -4,7 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FinanceStatusBadge } from '@/components/ui/finance-status-badge';
-import { ItemsManager } from '@/components/admin/items-manager';
+import dynamic from 'next/dynamic'
+const ItemsManager = dynamic(() => import('@/components/admin/items-manager').then(m => m.ItemsManager))
 import { ArrowLeft, FileText, Calendar, User, Building, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';

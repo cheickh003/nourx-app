@@ -71,7 +71,6 @@ export function renderSimpleTemplate(
   content: string,
   options?: { preheader?: string; footer?: string }
 ) {
-  const base = process.env.NEXT_PUBLIC_BASE_URL || process.env.APP_URL || 'http://localhost:3000'
   const logoSrc = 'cid:nourx-logo'
   const preheader = options?.preheader || ''
   const footer = options?.footer || '© NOURX. Tous droits réservés.'

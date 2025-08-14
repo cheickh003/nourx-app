@@ -10,12 +10,13 @@ import { fr } from 'date-fns/locale';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { TasksPageActions } from './tasks-page-actions';
 import { TaskCreateDialog } from '@/components/admin/task-create-dialog';
-import { Suspense } from 'react';
+export const dynamic = 'force-dynamic'
 
-async function getAllTasks() {
+async function getTasksPage(page: number, pageSize: number) {
   const supabase = await createClient();
-  
-  const { data: tasks, error } = await supabase
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  const query = supabase
     .from('tasks')
     .select(`
       *,
@@ -32,11 +33,13 @@ async function getAllTasks() {
         first_name,
         last_name
       )
-    `)
-    .order('created_at', { ascending: false });
+    `, { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(from, to)
 
-  if (error) throw error;
-  return tasks || [];
+  const { data, error, count } = await query
+  if (error) throw error
+  return { rows: data || [], total: count || 0 }
 }
 
 async function getTaskStats() {
@@ -56,8 +59,11 @@ async function getTaskStats() {
   return { total, completed, inProgress, todo, blocked };
 }
 
-export default async function AdminTachesPage() {
-  const [tasks, stats] = await Promise.all([getAllTasks(), getTaskStats()]);
+export default async function AdminTachesPage({ searchParams }: { searchParams?: Promise<{ page?: string; size?: string }> }) {
+  const { page = '1', size = '25' } = (await searchParams) || {}
+  const pageNum = Math.max(1, parseInt(page || '1', 10) || 1)
+  const pageSize = Math.min(100, Math.max(5, parseInt(size || '25', 10) || 25))
+  const [{ rows, total }, stats] = await Promise.all([getTasksPage(pageNum, pageSize), getTaskStats()]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -155,13 +161,13 @@ export default async function AdminTachesPage() {
       {/* Tableau des tâches */}
       <Card>
         <CardHeader>
-          <CardTitle>Tâches ({tasks.length})</CardTitle>
+          <CardTitle>Tâches ({total})</CardTitle>
           <CardDescription>
             Liste de toutes les tâches avec leurs informations principales
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {tasks.length === 0 ? (
+          {rows.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">Aucune tâche trouvée.</p>
             </div>
@@ -180,7 +186,7 @@ export default async function AdminTachesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tasks.map((task) => (
+                {rows.map((task) => (
                   <TableRow key={task.id}>
                     <TableCell>
                       <div>
@@ -258,6 +264,15 @@ export default async function AdminTachesPage() {
                 ))}
               </TableBody>
             </Table>
+          )}
+          {total > pageSize && (
+            <div className="flex items-center justify-between mt-4">
+              <span className="text-xs text-muted-foreground">Page {pageNum} / {Math.ceil(total / pageSize)}</span>
+              <div className="flex items-center gap-2">
+                <a className="btn btn-sm border px-3 py-1 rounded" href={`?page=${Math.max(1, pageNum - 1)}&size=${pageSize}`}>Précédent</a>
+                <a className="btn btn-sm border px-3 py-1 rounded" href={`?page=${pageNum + 1}&size=${pageSize}`}>Suivant</a>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

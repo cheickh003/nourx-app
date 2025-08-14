@@ -4,18 +4,19 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CalendarDays, FileText, Search, Target, User, Download, ExternalLink } from 'lucide-react';
+import { CalendarDays, FileText, Search, Target, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { DocumentPageActions } from './document-page-actions';
 import { DocumentCreateDialog } from '@/components/admin/document-create-dialog';
 import { DocumentEditActions } from '@/components/admin/document-edit-actions';
-import { DocumentUpload } from '@/components/documents/document-upload';
+export const dynamic = 'force-dynamic'
 
-async function getAllDocuments() {
+async function getDocumentsPage(page: number, pageSize: number) {
   const supabase = await createClient();
-  
-  const { data: documents, error } = await supabase
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  const query = supabase
     .from('documents')
     .select(`
       *,
@@ -32,11 +33,13 @@ async function getAllDocuments() {
         first_name,
         last_name
       )
-    `)
-    .order('created_at', { ascending: false });
+    `, { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(from, to)
 
-  if (error) throw error;
-  return documents || [];
+  const { data, error, count } = await query
+  if (error) throw error
+  return { rows: data || [], total: count || 0 }
 }
 
 async function getDocumentStats() {
@@ -62,9 +65,12 @@ function formatFileSize(bytes: number) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
-export default async function AdminDocumentsPage() {
-  const [documents, stats] = await Promise.all([
-    getAllDocuments(),
+export default async function AdminDocumentsPage({ searchParams }: { searchParams?: Promise<{ page?: string; size?: string }> }) {
+  const { page = '1', size = '25' } = (await searchParams) || {}
+  const pageNum = Math.max(1, parseInt(page || '1', 10) || 1)
+  const pageSize = Math.min(100, Math.max(5, parseInt(size || '25', 10) || 25))
+  const [{ rows, total }, stats] = await Promise.all([
+    getDocumentsPage(pageNum, pageSize),
     getDocumentStats(),
   ]);
 
@@ -161,16 +167,16 @@ export default async function AdminDocumentsPage() {
         </CardContent>
       </Card>
 
-      {/* Tableau des documents */}
+      {/* Tableau des documents (pagination simple côté client) */}
       <Card>
         <CardHeader>
-          <CardTitle>Documents ({documents.length})</CardTitle>
+          <CardTitle>Documents ({total})</CardTitle>
           <CardDescription>
             Liste de tous les documents avec leurs informations principales
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {documents.length === 0 ? (
+          {rows.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">Aucun document trouvé.</p>
             </div>
@@ -190,7 +196,7 @@ export default async function AdminDocumentsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {documents.map((doc) => (
+                {rows.map((doc) => (
                   <TableRow key={doc.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -257,6 +263,15 @@ export default async function AdminDocumentsPage() {
                 ))}
               </TableBody>
             </Table>
+          )}
+          {total > pageSize && (
+            <div className="flex items-center justify-between mt-4">
+              <span className="text-xs text-muted-foreground">Page {pageNum} / {Math.ceil(total / pageSize)}</span>
+              <div className="flex items-center gap-2">
+                <a className="btn btn-sm border px-3 py-1 rounded" href={`?page=${Math.max(1, pageNum - 1)}&size=${pageSize}`}>Précédent</a>
+                <a className="btn btn-sm border px-3 py-1 rounded" href={`?page=${pageNum + 1}&size=${pageSize}`}>Suivant</a>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -27,8 +27,8 @@ export function useRealtime({
   useEffect(() => {
     if (!enabled) return;
 
-    // Créer un canal unique
-    const channelName = `realtime-${table}-${filter || 'all'}-${Date.now()}`;
+    // Créer un canal stable par source
+    const channelName = `realtime-${table}-${filter || 'all'}`;
     const channel = supabase.channel(channelName);
 
     // Configuration de l'abonnement

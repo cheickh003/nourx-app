@@ -5,7 +5,6 @@ import { CSS } from '@dnd-kit/utilities';
 import { TaskWithDetails } from '@/types/database';
 import { StatusBadge, PriorityBadge } from '@/components/ui/status-badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { 
   Calendar, 

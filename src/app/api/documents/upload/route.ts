@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Récupérer le rôle (si inaccessible, on considère non-admin)
-    const { data: profile } = await supabase
+    await supabase
       .from('profiles')
       .select('role')
       .eq('user_id', user.id)
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     const storagePath = `project-${projectId}/${uniqueFileName}`;
 
     // Upload vers Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('project-files')
       .upload(storagePath, file, {
         cacheControl: '3600',
