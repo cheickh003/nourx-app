@@ -10,38 +10,32 @@ import { AlertCircle, Kanban } from 'lucide-react';
 async function TasksContent() {
   const supabase = await createClient();
   
-  // Vérifier l'authentification
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    redirect('/auth/sign-in');
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return redirect('/auth/sign-in');
   }
 
-  // Récupérer le profil utilisateur
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('user_id', user.id)
-    .single();
-
-  if (!profile) {
-    redirect('/auth/sign-in');
-  }
-
-  // Récupérer le premier projet de l'utilisateur (pour simplifier)
-  // Dans une version plus avancée, on pourrait avoir un sélecteur de projet
-  const { data: clientMembership } = await supabase
-    .from('client_members')
-    .select(`
+  // Exécuter les requêtes en parallèle
+  const [profileResult, clientMembershipResult] = await Promise.all([
+    supabase.from('profiles').select('*').eq('user_id', user.id).single(),
+    supabase.from('client_members').select(`
       client_id,
       clients!inner(
         id,
         name,
-        projects(*)
+        projects(id, name)
       )
     `)
     .eq('user_id', user.id)
-    .single();
+    .single()
+  ]);
 
+  const { data: profile } = profileResult;
+  if (!profile) {
+    return redirect('/auth/sign-in');
+  }
+
+  const { data: clientMembership } = clientMembershipResult;
   if (!clientMembership?.clients) {
     return (
       <div className="flex flex-col gap-6">
@@ -67,8 +61,10 @@ async function TasksContent() {
     );
   }
 
-  const clientData = clientMembership.clients as unknown as { id: string; name: string; projects?: { id: string; name: string }[] } | null
-  if (!clientData || !Array.isArray(clientData.projects) || clientData.projects.length === 0) {
+  const clientData = clientMembership.clients as unknown as { id: string; name: string; projects?: { id: string; name: string }[] } | null;
+  const project = clientData?.projects?.[0];
+
+  if (!project) {
     return (
       <div className="flex flex-col gap-6">
         <div>
@@ -92,8 +88,6 @@ async function TasksContent() {
       </div>
     );
   }
-
-  const project = clientData.projects[0];
   
   // Récupérer les tâches du projet
   const tasksResult = await getTasks(project.id);

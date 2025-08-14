@@ -245,11 +245,7 @@ export async function getTasks(projectId: string): Promise<{ success: boolean; d
   try {
     const supabase = await createClient();
     
-    const { data: user, error: authError } = await supabase.auth.getUser();
-    if (authError || !user.user) {
-      return { success: false, error: 'Non authentifié' };
-    }
-
+    // Note: l'authentification est gérée par la page appelante
     const { data: tasks, error } = await supabase
       .from('tasks')
       .select(`
@@ -272,15 +268,11 @@ export async function getTasks(projectId: string): Promise<{ success: boolean; d
   }
 }
 
-export async function getTaskById(taskId: string): Promise<{ success: boolean; data?: TaskWithDetails; error?: string }> {
+export async function getTaskById(taskId: string): Promise<{ success:boolean; data?: TaskWithDetails; error?: string }> {
   try {
     const supabase = await createClient();
     
-    const { data: user, error: authError } = await supabase.auth.getUser();
-    if (authError || !user.user) {
-      return { success: false, error: 'Non authentifié' };
-    }
-
+    // Note: l'authentification est gérée par la page appelante
     const { data: task, error } = await supabase
       .from('tasks')
       .select(`
